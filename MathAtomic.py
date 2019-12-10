@@ -75,21 +75,27 @@ class CombinedRangeObject(RangeObject):
         self.range_objects.append(range_object)
 
     def merge_ranges(self):
-        temp = []
         popped = True
+        ro_len = len(self.range_objects)
+        start_i = 0
+        start_j = 0
         while popped:
             popped = False
-            ro_len = len(self.range_objects)
             # We need to iterate over everything and try to merge it with everything else, but we also want to merge
-            # all possible results - run time is ~ n^3 in the worst case, which is pretty bad.
-            for i in range(ro_len):
-                for j in range(i + 1, ro_len):
+            # all possible results - run time is ~ n^2 in the worst case, which is pretty bad.
+            # Don't need to start over each time: if 1 does not merge with 2 or 3, then it won't merge with the
+            # combination of 2 and 3.
+            for i in range(start_i, ro_len):
+                start_i = i
+                for j in range(max(i + 1, start_j), ro_len):
+                    start_j = j
                     attempt = self.range_objects[i].try_merge(self.range_objects[j])
                     if attempt is not None:
                         self.range_objects.pop(i)
                         self.range_objects.pop(j - 1)
                         self.range_objects.append(attempt)
                         popped = True
+                        ro_len -= 1
                         break
                 if popped:
                     break
