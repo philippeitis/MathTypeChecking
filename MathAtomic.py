@@ -18,6 +18,8 @@ class RangeObject:
         if lower_is_within and upper_is_within:
             return True
 
+        # If the lower bound is not strictly within, it is either equal or outside. If it is not equal, it is outside,
+        # which makes lower_is_within False. If it is equal,
         lower_is_within = lower_is_within or (self.lower_bound == _rhs.lower_bound and self.lower_bound_inclusive
                                               and _rhs.lower_bound_inclusive)
         upper_is_within = upper_is_within or (self.upper_bound == _rhs.upper_bound and self.upper_bound_inclusive
@@ -26,22 +28,46 @@ class RangeObject:
         return lower_is_within and upper_is_within
 
     def is_number(self):
-        return self.lower_bound == self.upper_bound and self.lower_bound_inclusive is self.upper_bound_inclusive is False
+        # Not sure what an open interval on a number means - eg. [0, 0]?
+        return self.lower_bound == self.upper_bound
 
     def __str__(self):
         if self.is_number():
             return "%d" % self.lower_bound
+        seperator = ","
+        # The isnumber check avoids accidentally
+        if isinstance(self.lower_bound, int) and isinstance(self.upper_bound, int):
+            seperator = ".."
+            if not self.upper_bound_inclusive:
+                self.upper_bound -= 1
+                self.upper_bound_inclusive = True
+            if not self.lower_bound_inclusive:
+                self.lower_bound += 1
+                self.lower_bound_inclusive = True
+
         _lhs = "[" if self.lower_bound_inclusive else "("
         _rhs = "]" if self.upper_bound_inclusive else ")"
-        return f"{_lhs}{self.lower_bound}, {self.upper_bound}{_rhs}"
+        return f"{_lhs}{self.lower_bound}{seperator} {self.upper_bound}{_rhs}"
+
+    def copy_from(self, source):
+        self.lower_bound = source.lower_bound
+        self.upper_bound = source.upper_bound
+        self.lower_bound_inclusive = source.lower_bound_inclusive
+        self.upper_bound_inclusive = source.upper_bound_inclusive
 
     def try_merge(self, _rhs):
+        """ Returns None if the ranges have no overlap at all, otherwise returns the merged range.
+
+        :param _rhs: The range object with which to merge.
+        :return:
+        """
         # Returns a single range object.
-        # Simple cases:
+        # Simple cases: one is a subset of the other.
         if self.contained_by(_rhs):
             return _rhs
         elif _rhs.contained_by(self):
             return self
+        # Can't possibly contain the other.
         elif _rhs.lower_bound > self.upper_bound:
             return None
         elif self.lower_bound > _rhs.upper_bound:
@@ -63,6 +89,18 @@ class RangeObject:
         print("Did I cover all the cases?")
         return None
 
+    def try_merge_rhs_ge(self, _rhs):
+        # A version where _rhs is greater than or equal to this range (eg. lower bound is greater or equal).
+        # Will always return None where try_merge returns none, but will not always return a valid solution.
+        if self.upper_bound > _rhs.lower_bound > self.lower_bound:
+            return RangeObject(self.lower_bound, self.lower_bound_inclusive, _rhs.upper_bound,
+                               _rhs.upper_bound_inclusive)
+        elif self.upper_bound >= _rhs.lower_bound > self.lower_bound and (
+                self.upper_bound_inclusive or _rhs.lower_bound_inclusive):
+            return RangeObject(self.lower_bound, self.lower_bound_inclusive, _rhs.upper_bound,
+                               _rhs.upper_bound_inclusive)
+        return None
+
 
 class CombinedRangeObject(RangeObject):
     def __init__(self, range_objects):
@@ -74,31 +112,34 @@ class CombinedRangeObject(RangeObject):
     def add_range_object(self, range_object):
         self.range_objects.append(range_object)
 
+    def sort(self):
+        self.range_objects.sort(key=lambda x: x.lower_bound)
+
     def merge_ranges(self):
-        popped = True
+        # Idea to sort the list inspired by https://leetcode.com/problems/merge-intervals/solution/
+        self.sort()
         ro_len = len(self.range_objects)
-        start_i = 0
-        start_j = 0
-        while popped:
-            popped = False
-            # We need to iterate over everything and try to merge it with everything else, but we also want to merge
-            # all possible results - run time is ~ n^2 in the worst case, which is pretty bad.
-            # Don't need to start over each time: if 1 does not merge with 2 or 3, then it won't merge with the
-            # combination of 2 and 3.
-            for i in range(start_i, ro_len):
-                start_i = i
-                for j in range(max(i + 1, start_j), ro_len):
-                    start_j = j
-                    attempt = self.range_objects[i].try_merge(self.range_objects[j])
-                    if attempt is not None:
-                        self.range_objects.pop(i)
-                        self.range_objects.pop(j - 1)
-                        self.range_objects.append(attempt)
-                        popped = True
-                        ro_len -= 1
-                        break
-                if popped:
-                    break
+        i = 0
+        # Bounded by O(n): if all merges fail, then we have only tried n - 1 merges.
+        # If all merges succeed, then we will have done n - 1 merges.
+        # This of course assumes that array accesses takes O(1) time.
+        while i < ro_len:
+            j = i + 1
+            # At the start of each loop, the list is sorted. We can do at most ro_len - j - 1 iterations.
+            while j < ro_len:
+                # Attempt a merge, which takes O(1) time. If successful, move to the next item and reduce the problem
+                # space by 1.
+                attempt = self.range_objects[i].try_merge_rhs_ge(self.range_objects[j])
+                if attempt is None:
+                    # exit loop
+                    j = ro_len
+                else:
+                    # Could also pop j in place and continue onwards.
+                    # Haven't compared the two options.
+                    self.range_objects.pop(j)
+                    self.range_objects[i] = attempt
+                    ro_len -= 1
+            i += 1
 
     def contained_by(self, _rhs):
         if self.lower_bound < _rhs.lower_bound or self.upper_bound > _rhs.upper_bound:
@@ -185,6 +226,8 @@ class DivisionAtomic(MathAtomic):
         if isinstance(_rhs, MathAtomic):
             _rhs_range = _rhs.range_object
 
+        # If division by 0 is possible, ranges must include infinity.
+        # TODO: add check for divisor signs.
         if RangeObject(0, True, 0, True).contained_by(_rhs_range):
             self.range_object = RangeObject(-inf, True, inf, True)
         elif RangeObject(0, False, 0, True).contained_by(_rhs_range):
@@ -314,7 +357,7 @@ if __name__ == "__main__":
     print(Atomic1.contained_by(Atomic2))
     print(Atomic2.contained_by(Atomic1))
     print(Atomic1.contained_by(Atomic1))
-    Atomic3 = RangeObject(1, False, 2, True)
+    Atomic3 = RangeObject(1.0, False, 2, True)
     print(Atomic1.contained_by(Atomic3))
     Atomic4 = AddAtomic(Atomic1, Atomic3)
     print(Atomic4)
