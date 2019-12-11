@@ -25,6 +25,7 @@ class RandomIterator:
         self.max_iters = num_iters
         self.curr_iter = 0
 
+
 class IntegerRandomIterator(RandomIterator):
     def __init__(self, _interval, num_iters, **kwargs):
         super().__init__(_interval, num_iters)
@@ -53,6 +54,7 @@ class FloatRandomIterator(RandomIterator):
             raise StopIteration
 
         return uniform(self._interval.lower_bound, self._interval.upper_bound)
+
 
 class FunctionIterator:
     def __init__(self, iterable, _func=lambda x: x):
@@ -268,17 +270,19 @@ class MathAtomic:
 class ErrorableAtomic(MathAtomic):
     """ Should possess an error flag indicating whether the input intervals could produce a type error
     (eg. sqrt([-1... 10]), or even the type of error(s) producable. """
+
     def __init__(self, **kwargs):
         super().__init__()
         self.error = None
 
 
 class SingleArgumentFunctionAtomic(ErrorableAtomic):
-    """ Needs to be overriden if the function can produce values outside of the range _func(min) and _func(max) ->
+    """ May need to be overriden if the function can produce values outside of the range _func(min) and _func(max) ->
     eg. -x^2, or a sinusoidal function. """
+
     def __init__(self, _func, _input_interval, test_iterator=None):
         """ _func is the function as a pointer / object. _input is the input interval, and test_iterator is an iterator
-        that produces values we can test the function on. """
+        that produces values we can test the function on. If none, we will assume our first answer is correct. """
         # Need to specify every arg that goes into the function.
         super().__init__()
         self._func = _func
