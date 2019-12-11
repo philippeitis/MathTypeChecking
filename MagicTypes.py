@@ -6,6 +6,7 @@
     If magic_type has it's own parser, it should be available in registered_types and parsers.
     """
 
+
 # import builtins
 
 # real_import = builtins.__import__
@@ -56,6 +57,13 @@ def int_interval_parser(interval_str):
     return IntervalObject(int_parser(split_str[0][1:]), left_open, int_parser(split_str[1][:-1]), right_open)
 
 
+def default_interval_parser(interval_str, constructor):
+    from MathAtomic import IntervalObject
+    left_open = interval_str[0] == "o"
+    right_open = interval_str[-1] == "o"
+    split_str = interval_str.split("_")
+    return IntervalObject(constructor(split_str[0][1:]), left_open, constructor(split_str[1][:-1]), right_open)
+
 # Any types you plan on using should be in this array
 registered_types = [int, float]
 
@@ -71,4 +79,7 @@ interval_parsers = {"int": int_interval_parser}
 def meta_parser(import_str: str):
     first_split = import_str.index("_")
     interval_type = import_str[:first_split]
-    return interval_parsers[interval_type](import_str[first_split+1:])
+    interval_str = import_str[first_split + 1:]
+    if interval_type not in interval_parsers:
+        return default_interval_parser(interval_str, parsers[interval_type])
+    return interval_parsers.get(interval_type)(interval_str)

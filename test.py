@@ -26,8 +26,9 @@ def dynamic_type_importer(name, global_vars, local_vars, fromlist, level):
 builtins.__import__ = dynamic_type_importer
 if __name__ == "__main__":
     from MagicTypes import int_on10_10o
+
     print(int_on10_10o)
 
-    from MagicTypes import int_on10_10o
-    print(int_on10_10o)
+    from MagicTypes import float_on10_10o
 
+    print(float_on10_10o)
