@@ -32,3 +32,9 @@ if __name__ == "__main__":
     from MagicTypes import float_on10_10o
 
     print(float_on10_10o)
+
+    num = float("5e-7")
+    print(num)
+    print(num == int(num))
+    from MagicTypes import int_on10e1_10o
+    print(int_on10e1_10o)

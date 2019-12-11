@@ -30,7 +30,11 @@
 
 def int_parser(num_as_str):
     num_as_str = num_as_str.replace("n", "-")
-    return int(num_as_str)
+    num = float(num_as_str)
+    int_num = int(num)
+    if num != int_num:
+        raise ValueError(f"Called int constructor on a non-int number: {num_as_str} becomes {num}")
+    return int(float(num_as_str))
 
 
 def float_parser(num_as_str):
