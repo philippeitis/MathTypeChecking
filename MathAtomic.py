@@ -1,4 +1,5 @@
 from math import inf
+from random import randint, uniform
 
 
 class IntervalIterator:
@@ -34,7 +35,6 @@ class IntegerRandomIterator(RandomIterator):
         return self
 
     def __next__(self):
-        from random import randint
         if self.curr_iter == self.max_iters:
             raise StopIteration
 
@@ -49,7 +49,6 @@ class FloatRandomIterator(RandomIterator):
         return self
 
     def __next__(self):
-        from random import uniform
         if self.curr_iter == self.max_iters:
             raise StopIteration
 
