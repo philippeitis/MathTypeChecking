@@ -26,33 +26,20 @@ class RandomIterator:
         self.max_iters = num_iters
         self.curr_iter = 0
 
+    def __iter__(self):
+        raise NotImplementedError()
+
 
 class IntegerRandomIterator(RandomIterator):
-    def __init__(self, _interval, num_iters, **kwargs):
-        super().__init__(_interval, num_iters)
-
     def __iter__(self):
-        return self
-
-    def __next__(self):
-        if self.curr_iter == self.max_iters:
-            raise StopIteration
-
-        return randint(self._interval.lower_bound, self._interval.upper_bound)
+        for _ in range(self.max_iters):
+            yield randint(self._interval.lower_bound, self._interval.upper_bound)
 
 
 class FloatRandomIterator(RandomIterator):
-    def __init__(self, _interval, num_iters, **kwargs):
-        super().__init__(_interval, num_iters)
-
     def __iter__(self):
-        return self
-
-    def __next__(self):
-        if self.curr_iter == self.max_iters:
-            raise StopIteration
-
-        return uniform(self._interval.lower_bound, self._interval.upper_bound)
+        for _ in range(self.max_iters):
+            yield uniform(self._interval.lower_bound, self._interval.upper_bound)
 
 
 class FunctionIterator:
@@ -61,13 +48,8 @@ class FunctionIterator:
         self._func = _func
 
     def __iter__(self):
-        return self
-
-    def __next__(self):
-        try:
-            return self._func(next(self.iterable))
-        except StopIteration:
-            raise
+        for x in self.iterable:
+            yield self._func(x)
 
 
 class Interval:
@@ -153,14 +135,14 @@ class IntervalObject(Interval):
             return IntervalObject(self.lower_bound, self.lower_bound_inclusive, _rhs.upper_bound,
                                   _rhs.upper_bound_inclusive)
         elif self.upper_bound >= _rhs.lower_bound > self.lower_bound and (
-                self.upper_bound_inclusive or _rhs.lower_bound_inclusive):
+            self.upper_bound_inclusive or _rhs.lower_bound_inclusive):
             return IntervalObject(self.lower_bound, self.lower_bound_inclusive, _rhs.upper_bound,
                                   _rhs.upper_bound_inclusive)
         elif _rhs.upper_bound > self.lower_bound > _rhs.lower_bound:
             return IntervalObject(_rhs.lower_bound, _rhs.lower_bound_inclusive, self.upper_bound,
                                   self.upper_bound_inclusive)
         elif _rhs.upper_bound >= self.lower_bound > _rhs.lower_bound and (
-                self.lower_bound_inclusive or _rhs.upper_bound_inclusive):
+            self.lower_bound_inclusive or _rhs.upper_bound_inclusive):
             return IntervalObject(_rhs.lower_bound, _rhs.lower_bound_inclusive, self.upper_bound,
                                   self.upper_bound_inclusive)
         print("Did I cover all the cases?")
@@ -173,7 +155,7 @@ class IntervalObject(Interval):
             return IntervalObject(self.lower_bound, self.lower_bound_inclusive, _rhs.upper_bound,
                                   _rhs.upper_bound_inclusive)
         elif self.upper_bound >= _rhs.lower_bound > self.lower_bound and (
-                self.upper_bound_inclusive or _rhs.lower_bound_inclusive):
+            self.upper_bound_inclusive or _rhs.lower_bound_inclusive):
             return IntervalObject(self.lower_bound, self.lower_bound_inclusive, _rhs.upper_bound,
                                   _rhs.upper_bound_inclusive)
         return None
@@ -268,7 +250,7 @@ class MathAtomic:
 
 class ErrorableAtomic(MathAtomic):
     """ Should possess an error flag indicating whether the input intervals could produce a type error
-    (eg. sqrt([-1... 10]), or even the type of error(s) producable. """
+    (eg. sqrt([-1... 10]), or even the type of error(s) that could be produced. """
 
     def __init__(self, **kwargs):
         super().__init__()
