@@ -74,15 +74,22 @@ class IntervalObject(Interval):
         lower_is_within = self.lower_bound > _rhs.lower_bound
         upper_is_within = self.upper_bound < _rhs.upper_bound
 
+        # Fast path.
         if lower_is_within and upper_is_within:
             return True
 
         # If the lower bound is not strictly within, it is either equal or outside. If it is not equal, it is outside,
-        # which makes lower_is_within False. If it is equal,
-        lower_is_within = lower_is_within or (self.lower_bound == _rhs.lower_bound and self.lower_bound_inclusive
-                                              and _rhs.lower_bound_inclusive)
-        upper_is_within = upper_is_within or (self.upper_bound == _rhs.upper_bound and self.upper_bound_inclusive
-                                              and _rhs.upper_bound_inclusive)
+        # which makes lower_is_within False. If it is equal, we need to check that the end points are the same.
+        lower_is_within = (
+            lower_is_within or
+            (self.lower_bound == _rhs.lower_bound
+             and (not self.lower_bound_inclusive or _rhs.lower_bound_inclusive))
+        )
+        upper_is_within = (
+            upper_is_within or
+            (self.upper_bound == _rhs.upper_bound
+             and (not self.upper_bound_inclusive or _rhs.upper_bound_inclusive))
+        )
 
         return lower_is_within and upper_is_within
 
